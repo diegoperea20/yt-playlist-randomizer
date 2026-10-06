@@ -1,0 +1,103 @@
+@import 'tailwindcss';
+
+/* The app is dark-only: the class is pinned on <html> so every child can use `dark:`. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-surface-base: oklch(0.16 0.008 285);
+  --color-surface-raised: oklch(0.2 0.009 285);
+  --color-surface-overlay: oklch(0.24 0.01 285);
+  --color-surface-hover: oklch(0.28 0.012 285);
+
+  --color-line-subtle: oklch(0.32 0.012 285);
+  --color-line-strong: oklch(0.42 0.014 285);
+
+  --color-content-primary: oklch(0.96 0.004 285);
+  --color-content-secondary: oklch(0.76 0.01 285);
+  --color-content-muted: oklch(0.6 0.012 285);
+
+  --color-brand: oklch(0.62 0.23 25);
+  --color-brand-strong: oklch(0.55 0.24 25);
+  --color-brand-soft: oklch(0.32 0.09 25);
+
+  --font-sans:
+    'Roboto', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-surface-base text-content-primary font-sans antialiased;
+    /* Keep the layout stable while the queue panel scrolls independently. */
+    overscroll-behavior: none;
+    /* No grey flash when tapping controls on mobile. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection {
+    @apply bg-brand-soft text-content-primary;
+  }
+
+  :focus-visible {
+    @apply outline-brand outline-2 outline-offset-2;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-line-subtle rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-line-strong;
+  }
+}
+
+@layer components {
+  /* Shared surface used by the sidebar, the queue panel and every card-like block. */
+  .panel {
+    @apply bg-surface-raised border-line-subtle rounded-xl border;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(3px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Mount animations for floating layers; the global reduced-motion rule below still wins. */
+@utility animate-pop-in {
+  animation: pop-in 140ms ease-out;
+}
+
+@utility animate-fade-in {
+  animation: fade-in 160ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
