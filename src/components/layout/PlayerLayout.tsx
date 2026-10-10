@@ -45,10 +45,38 @@ export function PlayerLayout() {
 
   const mediaHandlers = useMemo(
     () => ({
-      play: controls.play,
-      pause: controls.pause,
-      next,
-      previous,
+      // Remember the intent before driving the iframe: the player can be mid-load
+      // (fresh reload, track switch) and the sticky retry then starts it ASAP,
+      // including from a background tab.
+      play: () => {
+        usePlayerStore.getState().setPendingPlay(true)
+        controls.play()
+      },
+      pause: () => {
+        usePlayerStore.getState().setPendingPlay(false)
+        controls.pause()
+      },
+      stop: () => {
+        usePlayerStore.getState().setPendingPlay(false)
+        controls.pause()
+      },
+      // Media keys always carry an implicit "keep playing" intent, like the
+      // auto-advance does (unlike the manual next/previous buttons, which honour
+      // the paused state).
+      next: () => {
+        const before = usePlayerStore.getState().currentId
+        next()
+        if (usePlayerStore.getState().currentId !== before) {
+          usePlayerStore.getState().setPendingPlay(true)
+        }
+      },
+      previous: () => {
+        const before = usePlayerStore.getState().currentId
+        previous()
+        if (usePlayerStore.getState().currentId !== before) {
+          usePlayerStore.getState().setPendingPlay(true)
+        }
+      },
       seek: controls.seek,
       seekBy: controls.skip,
     }),

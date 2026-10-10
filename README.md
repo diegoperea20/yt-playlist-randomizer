@@ -61,6 +61,7 @@ npm run lint       # eslint
 | `Shift` + `←` / `→` | Previous / next track |
 | `M` | Mute |
 | `S` | Re-shuffle the queue |
+| Media keys (play/pause, next, previous) | Same actions, also on the lock screen via Media Session |
 
 ## Shuffle modes
 
