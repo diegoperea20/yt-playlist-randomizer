@@ -17,7 +17,7 @@ import { Tooltip } from '../ui/tooltip'
 /** Central panel: the YouTube iframe plus cinema/fullscreen controls. */
 export function VideoStage() {
   const { t } = useT()
-  const { videoId, handlers } = useYouTubePlayer()
+  const { handlers } = useYouTubePlayer()
   const { controls } = usePlayerBridge()
   const currentId = usePlayerStore((state) => state.currentId)
   const isBuffering = usePlayerStore((state) => state.isBuffering)
@@ -28,6 +28,44 @@ export function VideoStage() {
   const [isTheater, setIsTheater] = useState(false)
 
   const track = useCurrentTrack()
+
+  // The player instance is persistent across tracks: the iframe is created once with
+  // this anchor id and every later advance loads imperatively (see useYouTubePlayer).
+  // Passing the changing `currentId` straight through would make `react-youtube`
+  // destroy and recreate the iframe per track, which stalls in hidden Chromium tabs.
+  // State adjusted during render (documented "previous render info" pattern) so no
+  // cascading effect is needed.
+  const [anchorId, setAnchorId] = useState<string | null>(null)
+  const [prevCurrentId, setPrevCurrentId] = useState<string | null>(currentId)
+  if (prevCurrentId !== currentId) {
+    setPrevCurrentId(currentId)
+    if (currentId === null) setAnchorId(null)
+    else if (anchorId === null) setAnchorId(currentId)
+  }
+
+  // Scripted playback in a hidden tab needs the autoplay permission on the iframe.
+  useEffect(() => {
+    if (!anchorId || typeof window === 'undefined') return
+    let cancelled = false
+    const ensureAllow = () => {
+      if (cancelled) return
+      const iframe = stageRef.current?.querySelector('iframe')
+      if (iframe) {
+        iframe.setAttribute(
+          'allow',
+          'autoplay; encrypted-media; fullscreen; picture-in-picture',
+        )
+      }
+    }
+    ensureAllow()
+    const first = window.setTimeout(ensureAllow, 600)
+    const second = window.setTimeout(ensureAllow, 2000)
+    return () => {
+      cancelled = true
+      window.clearTimeout(first)
+      window.clearTimeout(second)
+    }
+  }, [anchorId])
 
   // The IFrame API has no time events, so the progress is polled while playing.
   useEffect(() => {
@@ -77,9 +115,9 @@ export function VideoStage() {
       }
     >
       <div className="bg-black relative min-h-0 flex-1">
-        {currentId ? (
+        {currentId && anchorId ? (
           <YouTube
-            videoId={videoId}
+            videoId={anchorId}
             className="h-full w-full"
             iframeClassName="h-full w-full"
             title={track?.title ?? t('player.youtubePlayer')}

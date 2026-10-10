@@ -17,6 +17,13 @@ export type PlayerControls = {
   play: () => void
   pause: () => void
   togglePlay: () => void
+  /**
+   * Load a video into the persistent player and start it in a single autoplay
+   * step. Used for track advances so the iframe is never destroyed/recreated
+   * per track (recreation plus a separate cue + play is what stalls in hidden
+   * tabs on Chromium).
+   */
+  load: (videoId: string) => void
   /** Jump to an absolute position in seconds. */
   seek: (seconds: number) => void
   /** Move the position relative to the current one, used by the arrow keys. */
@@ -24,6 +31,8 @@ export type PlayerControls = {
   restart: () => void
   getCurrentTime: () => number
   getDuration: () => number
+  /** Raw IFrame state (`YT.PlayerState`), `-2` when the player is not ready. */
+  getPlayerState: () => number
   isReady: () => boolean
 }
 
@@ -77,6 +86,10 @@ export function PlayerBridgeProvider({ children }: { children: ReactNode }) {
         if (instance.getPlayerState() === PlayerState.PLAYING) instance.pauseVideo()
         else instance.playVideo()
       }),
+      load: (videoId) =>
+        safely((instance) => {
+          instance.loadVideoById(videoId)
+        })(),
       seek: (seconds) =>
         safely((instance) => {
           const duration = instance.getDuration() || 0
@@ -98,6 +111,14 @@ export function PlayerBridgeProvider({ children }: { children: ReactNode }) {
       }),
       getCurrentTime: () => player?.getCurrentTime() ?? 0,
       getDuration: () => player?.getDuration() ?? 0,
+      getPlayerState: () => {
+        if (!player) return -2
+        try {
+          return player.getPlayerState()
+        } catch {
+          return -2
+        }
+      },
       isReady: () => player !== null,
     }
   }, [player])

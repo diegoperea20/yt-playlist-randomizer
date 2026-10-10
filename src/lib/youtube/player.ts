@@ -6,16 +6,17 @@
 export type YTPlayerInstance = {
   playVideo: () => void
   pauseVideo: () => void
-  loadVideoById: (videoId: string) => void
+  loadVideoById: (videoId: string | { videoId: string; startSeconds?: number }) => void
+  cueVideoById: (videoId: string | { videoId: string; startSeconds?: number }) => void
   seekTo: (seconds: number, allowSeekAhead: boolean) => void
   getCurrentTime: () => number
   getDuration: () => number
   getVolume: () => number
+  getPlayerState: () => number
   setVolume: (volume: number) => void
   mute: () => void
   unMute: () => void
   isMuted: () => boolean
-  getPlayerState: () => number
   getIframe?: () => HTMLIFrameElement
 }
 

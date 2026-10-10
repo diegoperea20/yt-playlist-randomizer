@@ -29,6 +29,7 @@ export function PlayerLayout() {
   const next = usePlayerStore((state) => state.next)
   const previous = usePlayerStore((state) => state.previous)
   const currentTime = usePlayerStore((state) => state.currentTime)
+  const isPlaying = usePlayerStore((state) => state.isPlaying)
 
   const [sheet, setSheet] = useState<Sheet>(null)
   // The sidebar and the queue exist either in the desktop grid or in a bottom sheet, never
@@ -59,6 +60,11 @@ export function PlayerLayout() {
   // Keep the OS scrubber in sync with the poll-driven position.
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return
+    try {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused'
+    } catch {
+      // Unsupported on some platforms.
+    }
     if (!navigator.mediaSession.setPositionState) return
     const duration = controls.getDuration()
     if (!Number.isFinite(duration) || duration <= 0) return
@@ -72,7 +78,7 @@ export function PlayerLayout() {
     } catch {
       // Some browsers throw while the iframe is still loading.
     }
-  }, [controls, currentTime])
+  }, [controls, currentTime, isPlaying])
 
   const sidebar = (
     <Sidebar

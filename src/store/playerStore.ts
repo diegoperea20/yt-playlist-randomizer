@@ -165,17 +165,41 @@ export const usePlayerStore = create<PlayerState>()(
 
       onTrackEnded: () => {
         const { queue, currentId, repeat } = get()
-        if (repeat === 'off') {
-          const index = queue.findIndex((track) => track.id === currentId)
-          if (index >= queue.length - 1) {
-            // End of the queue: stay put, paused.
-            set({ isPlaying: false, currentTime: 0, pendingPlay: false })
-          }
+        const index = queue.findIndex((track) => track.id === currentId)
+        // Auto-advance must always autoplay: the natural end implies playback was
+        // ongoing, and the transient `isPlaying` flag may already be false when the
+        // tab is hidden (a PAUSED state can arrive just before ENDED). Relying on
+        // `next()`'s `pendingPlay: isPlaying` snapshot here leaves the next video
+        // cued but paused in background tabs until the user returns.
+        if (repeat === 'off' && index >= queue.length - 1) {
+          // End of the queue: stay put, paused.
+          set({ isPlaying: false, currentTime: 0, pendingPlay: false })
+          return
         }
-        get().next()
+        const nextIndex = index + 1
+        if (nextIndex < queue.length) {
+          set({
+            currentId: queue[nextIndex].id,
+            currentTime: 0,
+            duration: 0,
+            pendingPlay: true,
+          })
+          return
+        }
+        // repeat === 'all': wrap around and keep playing.
+        set({
+          currentId: queue[0].id,
+          currentTime: 0,
+          duration: 0,
+          pendingPlay: true,
+        })
       },
 
-      setPlaying: (isPlaying) => set({ isPlaying, pendingPlay: false }),
+      // `pendingPlay` is cleared only when playback actually starts: a transient
+      // PAUSED (common right before ENDED in a hidden tab) must not cancel a
+      // pending background advance.
+      setPlaying: (isPlaying) =>
+        set(isPlaying ? { isPlaying, pendingPlay: false } : { isPlaying }),
       setBuffering: (isBuffering) => set({ isBuffering }),
       setPendingPlay: (pendingPlay) => set({ pendingPlay }),
       // Dragging the slider to zero mutes it, and dragging it up unmutes: the slider is
